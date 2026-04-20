@@ -15,7 +15,13 @@ export type WorkoutSet = {
 export type WorkoutExerciseLog = {
   exerciseId:
     | string
-    | { _id: string; name: string; muscleGroup?: string; unit?: string }
+    | {
+        _id: string;
+        name: string;
+        muscleGroup?: string;
+        equipment?: string;
+        unit?: string;
+      }
     | null;
   exerciseName?: string;
   order: number;
@@ -58,6 +64,32 @@ export function useWorkoutLogs(params?: { from?: string; to?: string }) {
         { params },
       );
       return data.logs;
+    },
+  });
+}
+
+export function useWorkoutLog(id: string) {
+  return useQuery({
+    queryKey: ["workout-log", id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ log: WorkoutLog }>(
+        `/workout-logs/${id}`,
+      );
+      return data.log;
+    },
+    enabled: Boolean(id),
+  });
+}
+
+export function useDeleteWorkoutLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/workout-logs/${id}`);
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY });
     },
   });
 }
