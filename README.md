@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Gym Progress Tracker
 
-## Getting Started
+A workout progress-tracking web app built with **Next.js 14 App Router** (full-stack),
+**MongoDB + Mongoose**, **Auth.js v5** (credentials), **TanStack Query + Axios**,
+**Tailwind CSS v4**, and **shadcn/radix UI** — all in TypeScript with a dark theme.
 
-First, run the development server:
+## Features
+
+- Account registration & credential login (Auth.js)
+- User profile with weight / height / birth date
+- Personal Exercise Library — CRUD with muscle group, equipment, unit, notes
+- Workout logging (sets, reps, weight, RPE, duration) with auto-calculated volume
+- Calendar view of workout history (page scaffold)
+- Progress photo uploads (page scaffold)
+- Per-exercise statistics (page scaffold)
+
+## Getting started (Bun)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+
+# Create env file
+cp .env.example .env.local
+# Edit .env.local and set MONGODB_URI + AUTH_SECRET
+
+# Dev server
+bun run dev
+
+# Production
+bun run build
+bun run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> Generate `AUTH_SECRET` with: `bunx auth secret` or `openssl rand -base64 32`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Folder structure
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```
+d:\gym_progress_pj\
+├─ src/
+│  ├─ app/
+│  │  ├─ layout.tsx              # Root layout + <Providers>
+│  │  ├─ page.tsx                # Landing page
+│  │  ├─ providers.tsx           # SessionProvider + QueryClientProvider + Toaster
+│  │  ├─ globals.css             # Tailwind v4 @theme tokens (dark)
+│  │  ├─ (app)/
+│  │  │  └─ exercises/
+│  │  │     └─ page.tsx          # Personal Exercise Library UI
+│  │  └─ api/
+│  │     ├─ auth/[...nextauth]/route.ts   # Auth.js handlers
+│  │     ├─ register/route.ts              # POST /api/register
+│  │     ├─ exercises/
+│  │     │  ├─ route.ts                    # GET / POST exercises
+│  │     │  └─ [id]/route.ts               # PATCH / DELETE exercise
+│  │     └─ workout-logs/route.ts          # POST / GET workout logs
+│  ├─ components/
+│  │  └─ ui/                     # button, card, dialog, input, label, select, textarea
+│  ├─ hooks/
+│  │  └─ use-exercises.ts        # TanStack Query hooks for the Library
+│  ├─ lib/
+│  │  ├─ auth.ts                 # NextAuth config (credentials provider)
+│  │  ├─ mongodb.ts              # Mongoose connection (cached)
+│  │  ├─ api-client.ts           # Axios instance
+│  │  └─ utils.ts                # cn()
+│  ├─ models/
+│  │  ├─ User.ts
+│  │  ├─ Exercise.ts
+│  │  └─ WorkoutLog.ts
+│  └─ types/
+│     └─ next-auth.d.ts          # Session typing (user.id)
+├─ .env.example
+├─ next.config.mjs
+├─ postcss.config.mjs            # @tailwindcss/postcss
+├─ tsconfig.json
+└─ package.json
+```
 
-## Learn More
+## MongoDB schemas
 
-To learn more about Next.js, take a look at the following resources:
+See `src/models/`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `User` — email, name, passwordHash, heightCm, weightKg, birthDate.
+- `Exercise` — userId-scoped; name, muscleGroup, equipment, unit, notes, isCustom. Unique on `(userId, name)`.
+- `WorkoutLog` — userId, date, title, `exercises[]` (exerciseId, order, `sets[]`, note), totalVolume, durationMin.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Sample API: log a workout
 
-## Deploy on Vercel
+`POST /api/workout-logs` (see `src/app/api/workout-logs/route.ts`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{
+  "date": "2026-04-20",
+  "title": "Push day",
+  "durationMin": 65,
+  "exercises": [
+    {
+      "exerciseId": "665f...e1",
+      "order": 0,
+      "sets": [
+        { "reps": 10, "weight": 60, "rpe": 7, "completed": true },
+        { "reps": 8,  "weight": 65, "rpe": 8, "completed": true },
+        { "reps": 6,  "weight": 70, "rpe": 9, "completed": true }
+      ],
+      "note": "Focus on scapular retraction"
+    }
+  ]
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+The route auto-computes `totalVolume = Σ (reps × weight)`.
+
+## Personal Exercise Library page
+
+`src/app/(app)/exercises/page.tsx` — search, filter by muscle group,
+create/edit/delete exercises via a Dialog form, grouped card grid, built
+entirely with TanStack Query + Axios against `/api/exercises`.
+
+## Notes
+
+- Tailwind v4 is configured via `@import "tailwindcss"` and `@theme` tokens in
+  `src/app/globals.css`; no `tailwind.config.ts` is needed.
+- Auth.js v5 is set up with JWT sessions and a credentials provider that looks
+  up the user in MongoDB and verifies `bcrypt` hashes.
+- Protect routes by calling `await auth()` inside API routes (already done in
+  `/api/exercises` and `/api/workout-logs`).

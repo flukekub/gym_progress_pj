@@ -1,33 +1,37 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(0.16 0.01 260);
+  --color-foreground: oklch(0.98 0 0);
+  --color-card: oklch(0.21 0.015 260);
+  --color-card-foreground: oklch(0.98 0 0);
+  --color-muted: oklch(0.27 0.015 260);
+  --color-muted-foreground: oklch(0.7 0.02 260);
+  --color-border: oklch(0.3 0.02 260);
+  --color-input: oklch(0.25 0.015 260);
+  --color-ring: oklch(0.7 0.15 160);
+  --color-primary: oklch(0.75 0.17 155);
+  --color-primary-foreground: oklch(0.15 0.02 260);
+  --color-secondary: oklch(0.27 0.015 260);
+  --color-secondary-foreground: oklch(0.98 0 0);
+  --color-destructive: oklch(0.6 0.22 25);
+  --color-destructive-foreground: oklch(0.98 0 0);
+  --color-accent: oklch(0.3 0.04 260);
+  --color-accent-foreground: oklch(0.98 0 0);
+  --radius: 0.75rem;
+}
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
+html,
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: var(--color-background);
+  color: var(--color-foreground);
+  min-height: 100%;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+* {
+  border-color: var(--color-border);
 }
