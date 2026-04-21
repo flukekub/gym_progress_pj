@@ -240,15 +240,10 @@ export default function CalendarPage() {
                           {hasLog && (
                             <span
                               className={cn(
-                                "mt-1 h-1.5 w-1.5 rounded-full",
+                                "absolute bottom-1.5 h-1.5 w-1.5 rounded-full",
                                 isSelected ? "bg-primary" : "bg-primary/80",
                               )}
                             />
-                          )}
-                          {dayLogs.length > 1 && (
-                            <span className="absolute right-1 top-1 text-[10px] font-semibold text-primary">
-                              {dayLogs.length}
-                            </span>
                           )}
                         </button>
                       );
