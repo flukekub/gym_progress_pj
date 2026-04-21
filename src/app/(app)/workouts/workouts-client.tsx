@@ -103,11 +103,7 @@ export default function WorkoutsClient() {
   const removeDraft = (key: string) =>
     setDrafts((ds) => ds.filter((d) => d.key !== key));
 
-  const updateSet = (
-    key: string,
-    index: number,
-    patch: Partial<WorkoutSet>,
-  ) =>
+  const updateSet = (key: string, index: number, patch: Partial<WorkoutSet>) =>
     setDrafts((ds) =>
       ds.map((d) =>
         d.key === key

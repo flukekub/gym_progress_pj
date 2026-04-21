@@ -25,10 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import {
-  useDeleteWorkoutLog,
-  useWorkoutLog,
-} from "@/hooks/use-workout-logs";
+import { useDeleteWorkoutLog, useWorkoutLog } from "@/hooks/use-workout-logs";
 
 export default function WorkoutDetailPage() {
   const params = useParams<{ id: string }>();
@@ -68,10 +65,7 @@ export default function WorkoutDetailPage() {
     );
   }
 
-  const totalSets = log?.exercises.reduce(
-    (a, ex) => a + ex.sets.length,
-    0,
-  );
+  const totalSets = log?.exercises.reduce((a, ex) => a + ex.sets.length, 0);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -121,9 +115,7 @@ export default function WorkoutDetailPage() {
         <StatCard
           icon={Flame}
           label="Total volume"
-          value={
-            log ? `${log.totalVolume.toLocaleString()} kg` : undefined
-          }
+          value={log ? `${log.totalVolume.toLocaleString()} kg` : undefined}
           loading={isLoading}
         />
         <StatCard
@@ -166,8 +158,7 @@ export default function WorkoutDetailPage() {
               const exerciseId = populated?._id;
 
               const exVolume = ex.sets.reduce(
-                (a, s) =>
-                  s.reps && s.weight ? a + s.reps * s.weight : a,
+                (a, s) => (s.reps && s.weight ? a + s.reps * s.weight : a),
                 0,
               );
 

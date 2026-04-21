@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   addMonths,
@@ -34,6 +34,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useWorkoutLogs, type WorkoutLog } from "@/hooks/use-workout-logs";
+import { useCalorieLogs, useSaveCalorieLog } from "@/hooks/use-calorie-logs";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -56,6 +59,14 @@ export default function CalendarPage() {
     to: format(gridEnd, "yyyy-MM-dd"),
   });
 
+  const { data: calorieLogs = [] } = useCalorieLogs({
+    from: format(gridStart, "yyyy-MM-dd"),
+    to: format(gridEnd, "yyyy-MM-dd"),
+  });
+
+  const saveCalorieMut = useSaveCalorieLog();
+  const [calorieInput, setCalorieInput] = useState<string>("");
+
   const logsByDate = useMemo(() => {
     const map = new Map<string, WorkoutLog[]>();
     for (const log of logs) {
@@ -67,12 +78,49 @@ export default function CalendarPage() {
     return map;
   }, [logs]);
 
+  const caloriesByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const log of calorieLogs) {
+      const key = format(new Date(log.date), "yyyy-MM-dd");
+      map.set(key, log.caloriesBurned);
+    }
+    return map;
+  }, [calorieLogs]);
+
+  const weeks = useMemo(() => {
+    const res = [];
+    for (let i = 0; i < days.length; i += 7) {
+      res.push(days.slice(i, i + 7));
+    }
+    return res;
+  }, [days]);
+
   const selectedKey = format(selected, "yyyy-MM-dd");
   const selectedLogs = logsByDate.get(selectedKey) ?? [];
+  const selectedCalories = caloriesByDate.get(selectedKey);
 
   const monthLogsCount = logs.filter((l) =>
     isSameMonth(new Date(l.date), cursor),
   ).length;
+
+  useEffect(() => {
+    setCalorieInput(selectedCalories?.toString() ?? "");
+  }, [selectedCalories, selectedKey]);
+
+  const handleSaveCalories = async () => {
+    if (!calorieInput) return;
+    try {
+      await saveCalorieMut.mutateAsync({
+        date: selectedKey,
+        caloriesBurned: Number(calorieInput),
+      });
+      toast.success("Calories saved");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save calories",
+      );
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -141,52 +189,74 @@ export default function CalendarPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-1 pb-2 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-[repeat(7,1fr)_auto] gap-1 pb-2 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {WEEKDAYS.map((d) => (
                 <div key={d}>{d}</div>
               ))}
+              <div className="w-16 ml-2 text-primary/70">Avg kcal</div>
             </div>
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((day) => {
-                const key = format(day, "yyyy-MM-dd");
-                const dayLogs = logsByDate.get(key) ?? [];
-                const inMonth = isSameMonth(day, cursor);
-                const isSelected = isSameDay(day, selected);
-                const hasLog = dayLogs.length > 0;
+            <div className="grid grid-cols-1 gap-1">
+              {weeks.map((week, idx) => {
+                const totalCalories = week.reduce(
+                  (sum, day) =>
+                    sum + (caloriesByDate.get(format(day, "yyyy-MM-dd")) || 0),
+                  0,
+                );
+                const avgCalories = Math.round(totalCalories / 7);
 
                 return (
-                  <button
-                    type="button"
-                    key={key}
-                    onClick={() => setSelected(day)}
-                    className={cn(
-                      "relative flex aspect-square flex-col items-center justify-center rounded-md border text-sm transition-colors",
-                      inMonth
-                        ? "border-border"
-                        : "border-transparent text-muted-foreground/60",
-                      isSelected
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "hover:bg-accent/60",
-                      isToday(day) &&
-                        !isSelected &&
-                        "border-primary/50 text-primary",
-                    )}
+                  <div
+                    key={idx}
+                    className="grid grid-cols-[repeat(7,1fr)_auto] gap-1"
                   >
-                    <span className="font-medium">{format(day, "d")}</span>
-                    {hasLog && (
-                      <span
-                        className={cn(
-                          "mt-1 h-1.5 w-1.5 rounded-full",
-                          isSelected ? "bg-primary" : "bg-primary/80",
-                        )}
-                      />
-                    )}
-                    {dayLogs.length > 1 && (
-                      <span className="absolute right-1 top-1 text-[10px] font-semibold text-primary">
-                        {dayLogs.length}
-                      </span>
-                    )}
-                  </button>
+                    {week.map((day) => {
+                      const key = format(day, "yyyy-MM-dd");
+                      const dayLogs = logsByDate.get(key) ?? [];
+                      const inMonth = isSameMonth(day, cursor);
+                      const isSelected = isSameDay(day, selected);
+                      const hasLog = dayLogs.length > 0;
+
+                      return (
+                        <button
+                          type="button"
+                          key={key}
+                          onClick={() => setSelected(day)}
+                          className={cn(
+                            "relative flex aspect-square flex-col items-center justify-center rounded-md border text-sm transition-colors",
+                            inMonth
+                              ? "border-border"
+                              : "border-transparent text-muted-foreground/60",
+                            isSelected
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "hover:bg-accent/60",
+                            isToday(day) &&
+                              !isSelected &&
+                              "border-primary/50 text-primary",
+                          )}
+                        >
+                          <span className="font-medium">
+                            {format(day, "d")}
+                          </span>
+                          {hasLog && (
+                            <span
+                              className={cn(
+                                "mt-1 h-1.5 w-1.5 rounded-full",
+                                isSelected ? "bg-primary" : "bg-primary/80",
+                              )}
+                            />
+                          )}
+                          {dayLogs.length > 1 && (
+                            <span className="absolute right-1 top-1 text-[10px] font-semibold text-primary">
+                              {dayLogs.length}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <div className="flex w-16 ml-2 items-center justify-center rounded-md border border-transparent text-xs font-semibold text-primary bg-primary/5">
+                      {avgCalories > 0 ? `${avgCalories}` : "-"}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -208,6 +278,31 @@ export default function CalendarPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2 border-b border-border pb-4">
+                <label className="text-sm font-medium">
+                  Daily Calories (kcal)
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="E.g., 500"
+                    value={calorieInput}
+                    onChange={(e) => setCalorieInput(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveCalories}
+                    disabled={
+                      saveCalorieMut.isPending ||
+                      (!calorieInput && !selectedCalories)
+                    }
+                  >
+                    {saveCalorieMut.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
               {selectedLogs.length === 0 ? (
                 <Button asChild variant="outline" className="w-full">
                   <Link href="/workouts">
